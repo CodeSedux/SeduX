@@ -1,0 +1,1 @@
+"""SeduX home automation service placeholder."""

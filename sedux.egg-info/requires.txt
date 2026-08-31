@@ -1,0 +1,17 @@
+fastapi==0.141.1
+uvicorn==0.52.0
+
+[cloud]
+
+[dev]
+httpx==0.28.1
+ruff==0.12.11
+
+[gpu]
+torch==2.8.0
+
+[postgres]
+psycopg[binary]==3.2.9
+
+[redis]
+redis==6.4.0

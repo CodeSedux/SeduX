@@ -4,6 +4,7 @@ import json
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from urllib.parse import urlsplit
 
 from shared.contracts import SERVICE_NAMES, ServiceStatus, health_payload
 
@@ -20,15 +21,38 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if self.path == "/health":
-            self._write_json(health_payload("gateway"))
+        path = urlsplit(self.path).path
+        if path in {"/health", "/health/live"}:
+            self._write_json(health_payload("gateway", ready=True, detail="live" if path.endswith("/live") else None))
             return
-        if self.path == "/services":
-            services = [ServiceStatus(name, "planned").to_dict() for name in SERVICE_NAMES]
-            services[0]["status"] = "ok"
+        if path in {"/health/ready", "/readiness"}:
+            self._write_json({
+                "service": "gateway",
+                "status": "healthy",
+                "ready": True,
+                "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+                "services": [
+                    ServiceStatus(name, "ok" if name == "gateway" else "planned").to_dict()
+                    for name in SERVICE_NAMES
+                ],
+            })
+            return
+        if path == "/services":
+            services = [
+                ServiceStatus(name, "ok" if name == "gateway" else "planned").to_dict()
+                for name in SERVICE_NAMES
+            ]
             self._write_json({"services": services})
             return
         self._write_json({"error": "not_found"}, HTTPStatus.NOT_FOUND)
+
+    def do_OPTIONS(self) -> None:
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type, X-Request-ID")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def log_message(self, format: str, *args: object) -> None:
         return

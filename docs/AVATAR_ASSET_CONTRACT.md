@@ -1,0 +1,3 @@
+# Avatar Asset Contract
+
+Avatar adapters accept GLB/GLTF 2.0 assets in meters, Y-up, with a humanoid skeleton and embedded textures. Assets should expose ARKit-compatible blend-shape names where available; the baseline runtime requires `jawOpen`, `mouthClose`, `mouthSmile`, `mouthFunnel`, and `mouthPucker`. Animation clips must be deterministic, loop-safe, and named `idle`, `listen`, `think`, `speak`, and `error`. Missing assets use the untextured placeholder scene and low-performance mode disables gestures before lip sync.

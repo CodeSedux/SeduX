@@ -1,0 +1,1 @@
+"""SeduX screen automation service placeholder."""

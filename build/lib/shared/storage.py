@@ -1,0 +1,89 @@
+"""Dependency-free contracts for PostgreSQL and Redis persistence."""
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import StrEnum
+from typing import Any
+
+
+class PostgresTable(StrEnum):
+    USERS = "users"
+    CONVERSATIONS = "conversations"
+    MESSAGES = "messages"
+    TASKS = "tasks"
+    MEMORY_ENTRIES = "memory_entries"
+    AUDIT_EVENTS = "audit_events"
+
+
+@dataclass(frozen=True)
+class TableDefinition:
+    name: PostgresTable
+    columns: tuple[str, ...]
+    primary_key: str = "id"
+
+
+POSTGRES_SCHEMA: tuple[TableDefinition, ...] = (
+    TableDefinition(PostgresTable.USERS, ("id", "external_id", "created_at")),
+    TableDefinition(
+        PostgresTable.CONVERSATIONS,
+        ("id", "user_id", "title", "created_at", "updated_at"),
+    ),
+    TableDefinition(
+        PostgresTable.MESSAGES,
+        ("id", "conversation_id", "role", "content", "created_at"),
+    ),
+    TableDefinition(
+        PostgresTable.TASKS,
+        ("id", "user_id", "task_type", "state", "payload", "created_at", "updated_at"),
+    ),
+    TableDefinition(
+        PostgresTable.MEMORY_ENTRIES,
+        ("id", "user_id", "scope", "content", "created_at", "expires_at"),
+    ),
+    TableDefinition(
+        PostgresTable.AUDIT_EVENTS,
+        ("id", "user_id", "action", "resource", "metadata", "created_at"),
+    ),
+)
+
+
+class RedisNamespace(StrEnum):
+    SESSION = "session"
+    RATE_LIMIT = "rate-limit"
+    TASK_QUEUE = "task-queue"
+    TASK_RESULT = "task-result"
+
+
+@dataclass(frozen=True)
+class RedisKey:
+    namespace: RedisNamespace
+    identifier: str
+
+    def render(self) -> str:
+        if not self.identifier or ":" in self.identifier:
+            raise ValueError("Redis key identifiers must be non-empty and cannot contain ':'")
+        return f"sedux:{self.namespace}:{self.identifier}"
+
+
+@dataclass(frozen=True)
+class QueueEnvelope:
+    queue: str
+    task_id: str
+    payload: dict[str, Any]
+    attempt: int = 1
+    enqueued_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def __post_init__(self) -> None:
+        if not self.queue or not self.task_id:
+            raise ValueError("queue and task_id are required")
+        if self.attempt < 1:
+            raise ValueError("attempt must be positive")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "queue": self.queue,
+            "task_id": self.task_id,
+            "payload": self.payload,
+            "attempt": self.attempt,
+            "enqueued_at": self.enqueued_at.isoformat(),
+        }

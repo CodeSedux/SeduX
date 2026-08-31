@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: sedux
+Version: 0.1.0
+Summary: SeduX assistant control-plane foundation
+Requires-Python: >=3.10
+Requires-Dist: fastapi==0.141.1
+Requires-Dist: uvicorn==0.52.0
+Provides-Extra: dev
+Requires-Dist: httpx==0.28.1; extra == "dev"
+Requires-Dist: ruff==0.12.11; extra == "dev"
+Provides-Extra: postgres
+Requires-Dist: psycopg[binary]==3.2.9; extra == "postgres"
+Provides-Extra: redis
+Requires-Dist: redis==6.4.0; extra == "redis"
+Provides-Extra: gpu
+Requires-Dist: torch==2.8.0; extra == "gpu"
+Provides-Extra: cloud

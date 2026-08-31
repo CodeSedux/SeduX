@@ -31,6 +31,15 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(payload["status"], "ok")
         self.assertTrue(payload["timestamp"])
 
+    def test_health_accepts_query_parameters(self) -> None:
+        payload = self.get_json("/health?detail=1")
+        self.assertEqual(payload["service"], "gateway")
+        self.assertEqual(payload["status"], "ok")
+
+    def test_services_accepts_query_parameters(self) -> None:
+        payload = self.get_json("/services?format=compact")
+        self.assertEqual(len(payload["services"]), 8)
+
     def test_services_exposes_initial_tracks(self) -> None:
         payload = self.get_json("/services")
         names = {service["name"] for service in payload["services"]}

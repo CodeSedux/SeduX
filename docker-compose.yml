@@ -1,0 +1,64 @@
+services:
+  gateway:
+    build: .
+    container_name: sedux-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SEDUX_ENV: development
+      SEDUX_HOST: 0.0.0.0
+      SEDUX_PORT: 8080
+      DATABASE_URL: postgresql://sedux:sedux@postgres:5432/sedux
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles: ["cpu"]
+
+  postgres:
+    image: postgres:16.10-alpine
+    container_name: sedux-postgres
+    environment:
+      POSTGRES_DB: sedux
+      POSTGRES_USER: sedux
+      POSTGRES_PASSWORD: sedux
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sedux -d sedux"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    profiles: ["cpu"]
+
+  redis:
+    image: redis:7.4.5-alpine
+    container_name: sedux-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    profiles: ["cpu"]
+
+  gpu-worker:
+    image: nvidia/cuda:12.8.1-runtime-ubuntu24.04
+    command: ["sh", "-c", "echo 'GPU adapter image ready'; tail -f /dev/null"]
+    profiles: ["gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  postgres_data:

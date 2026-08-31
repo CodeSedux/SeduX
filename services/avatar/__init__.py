@@ -1,0 +1,1 @@
+"""SeduX avatar service placeholder."""
